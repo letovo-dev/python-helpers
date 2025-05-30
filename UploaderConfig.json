@@ -1,0 +1,24 @@
+{
+    "admins": [],
+    "media_url": "http://localhost/api/media/get/",
+    "ava_path": "pages/images/avatars",
+    "paths": {
+        "images": "pages/images/uploaded",
+        "videos": "pages/videos/uploaded",
+        "posts": "pages/posts/",
+        "other": "pages/docs"
+    },
+    "supported": {
+        "jpg": "images",
+        "jpeg": "images",
+        "png": "images",
+        "gif": "images",
+        "webp": "images",
+        "mp4": "videos",
+        "webm": "videos",
+        "ogg": "videos",
+        "pdf": "other",
+        "txt": "other",
+        "md": "posts"
+    }
+}
