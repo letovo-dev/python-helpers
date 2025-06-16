@@ -29,8 +29,15 @@ def upload_file():
     token = flask.request.form.get('Bearer', None)
     if not api_check_admin(token):
         return "You are not admin", 403
+    # TODO pic paths and change to links
     file.save(os.path.join(file_path, file.filename))
-    return config["media_url"] + str(os.path.join(config["paths"][config["supported"][extention]], file.filename))
+    # TODO saving file info to database
+    requests.post("http://localhost/api/notify/upload", json={
+        "file_name": file.filename,
+        "file_type": extention,
+        "file_path": os.path.join(config["paths"][config["supported"].get(extention, "other")], file.filename)
+    }, headers={"Bearer": token}, verify=False)
+    return str(os.path.join(config["paths"][config["supported"][extention]], file.filename))
 
 @app.route('/avatar', methods=['POST'])
 def upload_avatar():
@@ -47,4 +54,4 @@ def upload_avatar():
     return config["media_url"] + str(os.path.join(config["ava_path"], file.filename))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0', port=8880, debug=True, threaded=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=8880, debug=True, threaded=True, use_reloader=False)
