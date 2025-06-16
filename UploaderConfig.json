@@ -20,5 +20,6 @@
         "pdf": "other",
         "txt": "other",
         "md": "posts"
-    }
+    },
+    "check_admin": false
 }

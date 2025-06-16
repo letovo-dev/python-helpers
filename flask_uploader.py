@@ -9,6 +9,8 @@ with open('UploaderConfig.json', 'r') as f:
     config = json.load(f)
 
 def api_check_admin(token: str):
+    if not config["check_admin"]:
+        return True
     if not token:
         return False
     r = requests.get("http://localhost/api/auth/amiadmin", headers={"Bearer": token}, verify=False)
