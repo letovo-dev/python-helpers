@@ -25,9 +25,9 @@ def upload_file():
         return "No selected file", 400
     extention = file.filename.split('.')[-1].lower()
     if extention in config["supported"]:
-        file_path = os.path.join(ROOT_PATH, config["paths"][config["supported"][extention]])
+        file_path = os.path.join(current_path, ROOT_PATH, config["paths"][config["supported"][extention]])
     else: 
-        file_path = os.path.join(ROOT_PATH, config["paths"]["other"])
+        file_path = os.path.join(current_path, ROOT_PATH, config["paths"]["other"])
     token = flask.request.form.get('Bearer', None)
     if not api_check_admin(token):
         return "You are not admin", 403
