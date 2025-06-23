@@ -39,7 +39,7 @@ def upload_file():
         "file_type": extention,
         "file_path": os.path.join(config["paths"][config["supported"].get(extention, "other")], file.filename)
     }, headers={"Bearer": token}, verify=False)
-    return '/' + str(os.path.join(config["paths"][config["supported"][extention]], file.filename))
+    return '{"file: "/' + str(os.path.join(config["paths"][config["supported"][extention]], file.filename)) + '"}'
 
 @app.route('/avatar', methods=['POST'])
 def upload_avatar():
@@ -53,7 +53,7 @@ def upload_avatar():
     if not api_check_admin(token):
         return "You are not admin", 403
     file.save(os.path.join(file_path, file.filename))
-    return '/' + str(os.path.join(config["ava_path"], file.filename))
+    return '{"file: "/' + str(os.path.join(config["ava_path"], file.filename)) + '"}'
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8880, debug=True, threaded=True, use_reloader=False)
