@@ -1,12 +1,12 @@
 {
     "admins": [],
     "media_url": "http://localhost/api/media/get/",
-    "ava_path": "pages/images/avatars",
+    "ava_path": "images/admin_avatars",
     "paths": {
-        "images": "pages/images/uploaded",
-        "videos": "pages/videos/uploaded",
-        "posts": "pages/posts/",
-        "other": "pages/docs"
+        "images": "images/uploaded",
+        "videos": "videos/uploaded",
+        "posts": "posts/",
+        "other": "docs"
     },
     "supported": {
         "jpg": "images",
@@ -21,5 +21,5 @@
         "txt": "other",
         "md": "posts"
     },
-    "check_admin": false
+    "check_admin": true
 }

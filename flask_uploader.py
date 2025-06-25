@@ -3,7 +3,7 @@ import json, os
 import requests
 
 app = flask.Flask(__name__)
-ROOT_PATH = ".."
+ROOT_PATH = "/app/pages"
 current_path = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(current_path, 'UploaderConfig.json'), 'r') as f:
     config = json.load(f)
@@ -13,7 +13,7 @@ def api_check_admin(token: str):
         return True
     if not token:
         return False
-    r = requests.get("http://localhost/api/auth/amiadmin", headers={"Bearer": token}, verify=False)
+    r = requests.get("https://localhost/api/auth/amiadmin", headers={"Bearer": token}, verify=False)
     return json.loads(r.text)["status"] == 't'
 
 @app.route('/', methods=['POST'])
@@ -25,21 +25,16 @@ def upload_file():
         return "No selected file", 400
     extention = file.filename.split('.')[-1].lower()
     if extention in config["supported"]:
-        file_path = os.path.join(current_path, ROOT_PATH, config["paths"][config["supported"][extention]])
+        file_path = os.path.join(ROOT_PATH, config["paths"][config["supported"][extention]])
     else: 
-        file_path = os.path.join(current_path, ROOT_PATH, config["paths"]["other"])
+        file_path = os.path.join(ROOT_PATH, config["paths"]["other"])
     token = flask.request.form.get('Bearer', None)
     if not api_check_admin(token):
         return "You are not admin", 403
-    # TODO pic paths and change to links
+    
     file.save(os.path.join(file_path, file.filename))
-    # TODO saving file info to database
-    requests.post("http://localhost/api/notify/upload", json={
-        "file_name": file.filename,
-        "file_type": extention,
-        "file_path": os.path.join(config["paths"][config["supported"].get(extention, "other")], file.filename)
-    }, headers={"Bearer": token}, verify=False)
-    return '{"file: "/' + str(os.path.join(config["paths"][config["supported"][extention]], file.filename)) + '"}'
+        
+    return '{"file": "/' + str(os.path.join(config["paths"][config["supported"][extention]], file.filename)) + '"}'
 
 @app.route('/avatar', methods=['POST'])
 def upload_avatar():
@@ -53,7 +48,7 @@ def upload_avatar():
     if not api_check_admin(token):
         return "You are not admin", 403
     file.save(os.path.join(file_path, file.filename))
-    return '{"file: "/' + str(os.path.join(config["ava_path"], file.filename)) + '"}'
+    return '{"file": "/' + str(os.path.join(config["ava_path"], file.filename)) + '"}'
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8880, debug=True, threaded=True, use_reloader=False)
