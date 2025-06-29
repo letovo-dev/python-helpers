@@ -3,6 +3,8 @@ import json, os
 import requests
 
 app = flask.Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+
 ROOT_PATH = "/app/pages"
 current_path = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(current_path, 'UploaderConfig.json'), 'r') as f:
@@ -23,6 +25,7 @@ def upload_file():
     file = flask.request.files['file']
     if file.filename == '':
         return "No selected file", 400
+    file.filename.replace(" ", "_")
     extention = file.filename.split('.')[-1].lower()
     if extention in config["supported"]:
         file_path = os.path.join(ROOT_PATH, config["paths"][config["supported"][extention]])
@@ -47,6 +50,7 @@ def upload_avatar():
     token = flask.request.form.get('Bearer', None)
     if not api_check_admin(token):
         return "You are not admin", 403
+    file.filename.replace(" ", "_")
     file.save(os.path.join(file_path, file.filename))
     return '{"file": "/' + str(os.path.join(config["ava_path"], file.filename)) + '"}'
 
