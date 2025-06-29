@@ -31,9 +31,9 @@ def upload_file():
         file_path = os.path.join(ROOT_PATH, config["paths"][config["supported"][extention]])
     else: 
         file_path = os.path.join(ROOT_PATH, config["paths"]["other"])
-    token = flask.request.form.get('Bearer', None)
+    token = flask.request.headers.get('Bearer', None)
     if not api_check_admin(token):
-        return "You are not admin", 403
+        return f"You are not admin, your token: {token}", 403
     
     file.save(os.path.join(file_path, file.filename))
         
@@ -47,9 +47,9 @@ def upload_avatar():
     if file.filename == '':
         return "No selected file", 400
     file_path = os.path.join(ROOT_PATH, config["ava_path"])
-    token = flask.request.form.get('Bearer', None)
+    token = flask.request.headers.get('Bearer', None)
     if not api_check_admin(token):
-        return "You are not admin", 403
+        return f"You are not admin, your token: {token}", 403
     file.filename.replace(" ", "_")
     file.save(os.path.join(file_path, file.filename))
     return '{"file": "/' + str(os.path.join(config["ava_path"], file.filename)) + '"}'
