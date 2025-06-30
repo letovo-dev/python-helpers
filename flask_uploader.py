@@ -15,7 +15,7 @@ def api_check_admin(token: str):
         return True
     if not token:
         return False
-    r = requests.get("https://localhost/api/auth/amiadmin", headers={"Bearer": token}, verify=False)
+    r = requests.get("https://localhost/api/auth/amiuploader", headers={"Bearer": token}, verify=False)
     return json.loads(r.text)["status"] == 't'
 
 @app.route('/', methods=['POST'])
