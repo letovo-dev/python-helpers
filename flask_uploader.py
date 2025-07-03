@@ -1,9 +1,11 @@
 import flask
 import json, os
 import requests
+from datetime import datetime
+import hashlib
 
 app = flask.Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 * 10
 
 ROOT_PATH = "/app/pages"
 current_path = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +17,7 @@ def api_check_admin(token: str):
         return True
     if not token:
         return False
-    r = requests.get("https://localhost/api/auth/amiuploader", headers={"Bearer": token}, verify=False)
+    r = requests.get("https://letovocorp.ru/api/auth/amiadmin", headers={"Bearer": token}, verify=False)
     return json.loads(r.text)["status"] == 't'
 
 @app.route('/', methods=['POST'])
@@ -27,6 +29,7 @@ def upload_file():
         return "No selected file", 400
     file.filename.replace(" ", "_")
     extention = file.filename.split('.')[-1].lower()
+    file.filename = hashlib.md5(file.filename.encode()).hexdigest() + "." + extention
     if extention in config["supported"]:
         file_path = os.path.join(ROOT_PATH, config["paths"][config["supported"][extention]])
     else: 
@@ -36,7 +39,7 @@ def upload_file():
         return f"You are not admin, your token: {token}", 403
     
     file.save(os.path.join(file_path, file.filename))
-        
+
     return '{"file": "/' + str(os.path.join(config["paths"][config["supported"][extention]], file.filename)) + '"}'
 
 @app.route('/avatar', methods=['POST'])
@@ -51,6 +54,7 @@ def upload_avatar():
     if not api_check_admin(token):
         return f"You are not admin, your token: {token}", 403
     file.filename.replace(" ", "_")
+    file.filename = str(datetime.now().timestamp()).replace('.', '_') + "_" + file.filename
     file.save(os.path.join(file_path, file.filename))
     return '{"file": "/' + str(os.path.join(config["ava_path"], file.filename)) + '"}'
 

@@ -75,22 +75,28 @@ def elder_users():
         for row in reader:
             if len(row) < 4:
                 continue
-            name, password, dep_name, role = row[0], row[1], row[2].lower(), row[3]
+            useles_1, useles_2, name, password, dep_name, role = row[0], row[1], row[2], row[3], row[4], row[5]
+            dep_name = dep_name.lower()
             dep_id = departments.get(dep_name)
+            # if dep_name != 'дсо':
+            #     continue
             if not dep_id:
                 print(f"Department '{dep_name}' not found for user '{name}'. Skipping.")
                 continue
-            requests.post(
-                "https://localhost/api/auth/reg", 
+            res = requests.post(
+                "https://letovocorp.ru/api/auth/reg", 
                 json={
                     "login": name,
                     "password": password
                 },
                 verify=False
             )
+            if res.status_code != 200:
+                print(f"Failed to create user {name} with login {name}: {res.text}")
+                continue
             print(f"User {name} created, adding role {role}")
             requests.post(
-                "https://localhost/api/user/add_role",
+                "https://letovocorp.ru/api/user/add_role",
                 json={
                     "username": name,
                     "role_id": elder_offset + departments[dep_name]
@@ -98,8 +104,123 @@ def elder_users():
                 headers={"Bearer": f"{ADMIN_TOKEN}"},
                 verify=False
             )
+            cur.execute(
+                "update \"user\" set userrights = 'admin' where username = %s",
+                (name,)
+            )
+            con.commit()
             print(f"Role {role} added to user {name} in department {dep_name}")
     
+def children_users():
+    with open("children.csv", 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        next(reader)
+        cur.execute("SELECT departmentid, departmentname FROM department")
+        departments = {str(row[1]).lower(): row[0] for row in cur.fetchall()} 
+        for row in reader:
+            if len(row) < 3:
+                continue
+            # print(row)
+            name, useless, login, password, dep_name, counter, useless_2 = row[0], row[1], row[2], row[3], row[4], row[5].lower(), row[6]
+            dep_id = departments.get(dep_name.lower())
+            if not dep_id:
+                print(f"Department '{dep_name}' not found for user '{name}'. Skipping.")
+                continue
+            res = requests.post(
+                "https://letovocorp.ru/api/auth/reg", 
+                json={
+                    "login": login,
+                    "password": password
+                },
+                verify=False
+            )
+            if res.status_code != 200:
+                print(f"Failed to create user {name} with login {login}: {res.text}")
+                continue
+            print(f"User {name} created with login {login}, adding to department {dep_name}")
+            requests.post(
+                "https://letovocorp.ru/api/user/add_role",
+                json={
+                    "username": login,
+                    "role_id": dep_id
+                },
+                headers={"Bearer": f"{ADMIN_TOKEN}"},
+                verify=False
+            )
+
+def publishers():
+    with open("publishers.csv", 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        next(reader)
+        for row in reader:
+            if len(row) < 3:
+                continue
+            name, password, login = row[0], row[1], row[2]
+            requests.post(
+                "https://letovocorp.ru/api/auth/reg", 
+                json={
+                    "login": login,
+                    "password": password
+                },
+                verify=False
+            )
+            print(f"Publisher {name} created with login {login}")
+
+def check():
+    current_users = set()
+    with open('admins_select.csv') as f:
+        reader = csv.reader(f, delimiter=',')
+        next(reader)
+        for row in reader:
+            current_users.add(row[1])
+
+    with open('teachers.csv') as f:
+        reader = csv.reader(f, delimiter=',')
+        next(reader)
+        for row in reader:
+            if not current_users.__contains__(row[2]):
+                print(f"User {row[2]} not found in admins_select.csv")
+
+def check_children():
+    current_users = []
+    check = []
+    with open('children_select.csv') as f:
+        reader = csv.reader(f, delimiter=',')
+        next(reader)
+        for row in reader:
+            current_users.append(row[1])
+    with open('children.csv') as f:
+        reader = csv.reader(f, delimiter=',')
+        next(reader)
+        for row in reader:
+            if not row[2] in current_users:
+                print(f"User {row[2]} not found in children_select.csv")
+
+            check.append(row[2])
+
+    print(len(check), len(current_users))
+            # else:
+            #     print(f"User {row[2]} found in children_select.csv")
+    with open("dump.txt", "w") as f:
+        f.write(str(sorted(check)) + "\n")
+        f.write(str(sorted(current_users)) + "\n")
+
+def get_publisher_ava_path(name):
+    return f"/images/uploaded/publisher_avatars/{name}.png"
+
+def publisher_avatars():
+    with open("publishers.csv", 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        next(reader)
+        for row in reader:
+            cur.execute(
+                f'UPDATE "user" set avatar_pic = \'{get_publisher_ava_path(row[0])}\' WHERE username = %s'
+                , (row[2],)
+            )
+    con.commit()
+        
+
 
 if __name__ == "__main__":
     elder_users()
+
