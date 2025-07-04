@@ -18,6 +18,7 @@ bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 loop = asyncio.get_event_loop()
 
 current_latency = 0
+scheduled_fail = False
 
 async def listen_monitor():
     while True:
@@ -38,11 +39,13 @@ async def listen_monitor():
                         req_info = latest.get('reqInfo', '')
                         if latency > ALLOWED_LATENCY or '→ 200' not in req_info:
                             alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\n@Lunitarik shell i /restart server?'
-                            if not failed:
+                            if not failed and not scheduled_fail:
                                 failed = True
                                 bot.send_message(CHAT_ID, alert)
                         elif failed:
                             failed = False
+                            global scheduled_fail
+                            scheduled_fail = False
                             alert = f'✅ OK\n{req_info}\nLatency: {latency:.1f} ms'
                             bot.send_message(CHAT_ID, alert)
         except Exception as e:
@@ -67,6 +70,15 @@ def handle_status(message: telebot.types.Message):
         return
     status = f"Current latency: {current_latency:.1f} ms\nAllowed latency: {ALLOWED_LATENCY} ms"
     bot.send_message(message.chat.id, status)
+
+@bot.message_handler(commands=['fail'])
+def handle_fail(message: telebot.types.Message):
+    global scheduled_fail
+    if str(message.chat.id) not in [CHAT_ID, DEBUG_CHAT_ID]:
+        bot.reply_to(message, "⛔️ Unauthorized")
+        return
+    scheduled_fail = True
+    bot.reply_to(message, "🤫 Next failed will not be alerted.")
 
 
 if __name__ == '__main__':
