@@ -3,6 +3,13 @@ const http = require('http')
 const WebSocket = require('ws')
 const fetch = require('node-fetch')
 
+const fs = require('fs');
+const DATA_FILE = 'latency_data.jsonl';
+
+const MAX_STORAGE_TIME_MS = 24 * 60 * 60 * 1000; // сутки
+let measureCount = 0;
+
+
 const NAMES = [
   'scv',
   'admin',
@@ -109,30 +116,139 @@ app.get('/', (req, res) => {
     });
 
     const socket = new WebSocket('ws://' + location.host);
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      const points = msg.averages;
+  socket.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    const points = msg.averages;
 
-      chart.data.datasets[0].data = points.map(p => ({ x: new Date(p.time), y: p.avg5s, customData: p.reqInfo }));
-      chart.data.datasets[1].data = points.map(p => ({ x: new Date(p.time), y: p.avg1min, customData: p.reqInfo }));
-      chart.data.datasets[2].data = points.map(p => ({ x: new Date(p.time), y: p.avg1h, customData: p.reqInfo }));
+    chart.data.datasets[0].data = points.map(p => ({ x: new Date(p.time), y: p.avg5s, customData: p.reqInfo }));
+    chart.data.datasets[1].data = points.map(p => ({ x: new Date(p.time), y: p.avg1min, customData: p.reqInfo }));
+    chart.data.datasets[2].data = points.map(p => ({ x: new Date(p.time), y: p.avg1h, customData: p.reqInfo }));
 
-      if (points.length > 0) {
-        const latestTime = new Date(points[points.length - 1].time).getTime();
-        const RANGE = 5 * 60 * 1000; // 5 минут в мс
-        chart.options.scales.x.min = latestTime - RANGE / 2;
-        chart.options.scales.x.max = latestTime + RANGE / 2;
-      }
+    if (points.length > 0) {
+      const latestTime = new Date(points[points.length - 1].time).getTime();
+      const RANGE = 5 * 60 * 1000; // 5 минут в мс
+      chart.options.scales.x.min = latestTime - RANGE;
+      chart.options.scales.x.max = latestTime;
+    }
 
-      chart.data.datasets[0].borderColor = msg.colors[0];
-      chart.data.datasets[1].borderColor = msg.colors[1];
-      chart.data.datasets[2].borderColor = msg.colors[2];
-      chart.update();
-    };
+    chart.data.datasets[0].borderColor = msg.colors[0];
+    chart.data.datasets[1].borderColor = msg.colors[1];
+    chart.data.datasets[2].borderColor = msg.colors[2];
+    chart.update();
+  };
   </script>
 </body>
 </html>`);
 });
+
+app.get('/history', (req, res) => {
+  const timeParam = parseInt(req.query.time || '60'); // по умолчанию 60 минут
+  const timeRangeMs = timeParam * 60 * 1000;
+  const now = Date.now();
+  const points = [];
+
+  if (!fs.existsSync(DATA_FILE)) {
+    return res.send('No data available.');
+  }
+
+  const lines = fs.readFileSync(DATA_FILE, 'utf8').split('\n');
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    try {
+      const point = JSON.parse(line);
+      const pointTime = new Date(point.time).getTime();
+      if (now - pointTime <= timeRangeMs) {
+        points.push(point);
+      }
+    } catch (e) {
+      console.error('Error parsing history line:', e.message);
+    }
+  }
+
+  res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Latency History (Last ${timeParam} min)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+  <style>
+    body { background-color: #1e1e1e; color: #ccc; }
+    canvas { background-color: #2e2e2e; }
+  </style>
+</head>
+<body>
+  <h2>Latency History - Last ${timeParam} minutes</h2>
+  <canvas id="latencyChart" width="800" height="400"></canvas>
+  <script>
+    const ctx = document.getElementById('latencyChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'Latency',
+            data: [],
+            borderWidth: 2,
+            fill: false,
+            borderColor: 'rgba(0,200,255,1)',
+          }
+        ]
+      },
+      options: {
+        animation: false,
+        plugins: {
+          legend: {
+            labels: { color: '#ccc' },
+            display: true,
+            position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const point = context.raw;
+                const latency = point.y;
+                const reqInfo = point.customData || 'n/a';
+                return 'Latency: ' + latency.toFixed(1) + ' ms | ' + reqInfo;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'minute',
+              displayFormats: { minute: 'HH:mm:ss' }
+            },
+            ticks: { color: '#ccc' },
+            grid: { color: '#444' }
+          },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Latency (ms)', color: '#ccc' },
+            ticks: { color: '#ccc' },
+            grid: { color: '#444' }
+          }
+        }
+      }
+    });
+
+    const dataPoints = ${JSON.stringify(points)};
+    chart.data.datasets[0].data = dataPoints.map(p => ({ x: new Date(p.time), y: p.latency, customData: p.reqInfo }));
+    if (dataPoints.length > 0) {
+      const latestTime = new Date(dataPoints[dataPoints.length - 1].time).getTime();
+      const RANGE = ${timeParam} * 60 * 1000;
+      chart.options.scales.x.min = latestTime - RANGE;
+      chart.options.scales.x.max = latestTime;
+    }
+    chart.update();
+  </script>
+</body>
+</html>`);
+});
+
 
 wss.on('connection', ws => {
   console.log('Client connected');
@@ -154,6 +270,15 @@ function measureLatency() {
       };
       latencyData.push(point);
       if (latencyData.length > MAX_POINTS) latencyData.shift();
+
+      measureCount++;
+      if (measureCount % 100 === 0) {
+        pruneOldData();
+      }
+
+      fs.appendFile(DATA_FILE, JSON.stringify(point) + '\n', (err) => {
+        if (err) console.error('Error writing data file:', err.message);
+      });
 
       const averages = calculateAverages(latencyData);
       const colors = statusToColors(res.status);
@@ -207,6 +332,29 @@ function calculateAverages(data) {
     };
   });
 }
+
+function pruneOldData() {
+  if (!fs.existsSync(DATA_FILE)) return;
+  const now = Date.now();
+  try {
+    const lines = fs.readFileSync(DATA_FILE, 'utf8').split('\n');
+    const recentLines = lines.filter(line => {
+      if (!line.trim()) return false;
+      try {
+        const point = JSON.parse(line);
+        const pointTime = new Date(point.time).getTime();
+        return now - pointTime <= MAX_STORAGE_TIME_MS;
+      } catch (e) {
+        return false;
+      }
+    });
+    fs.writeFileSync(DATA_FILE, recentLines.join('\n') + '\n');
+    console.log(`Pruned old data, remaining points: ${recentLines.length}`);
+  } catch (e) {
+    console.error('Error pruning data file:', e.message);
+  }
+}
+
 
 function average(arr) {
   if (arr.length === 0) return 0;
