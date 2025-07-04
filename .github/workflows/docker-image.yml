@@ -19,7 +19,7 @@ jobs:
     - name: Save docker to tar
       run: docker save latency-bot:latest -o latency-bot.tar
     - name: Save as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: latency-image-tar
         path: latency-bot.tar
@@ -37,7 +37,7 @@ jobs:
     - name: Save docker to tar
       run: docker save flask-uploader:latest -o flask-uploader.tar
     - name: Save as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: uploader-image-tar
         path: flask-uploader.tar
