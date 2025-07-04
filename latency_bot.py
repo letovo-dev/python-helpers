@@ -2,7 +2,8 @@ import telebot
 import asyncio
 import websockets
 import json
-
+import subprocess
+import time
 # docker build -f dockerfile.latency_bot -t latency_bot:latest .
 
 with open("/app/configs/latency_bot_config.json", 'r') as f:
@@ -12,6 +13,7 @@ with open("/app/configs/latency_bot_config.json", 'r') as f:
     MONITOR_WS_URL = config['monitor_ws_url']
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+loop = asyncio.get_event_loop()
 
 
 async def listen_monitor():
@@ -30,7 +32,7 @@ async def listen_monitor():
                         latency = latest.get('avg5s', 0)
                         req_info = latest.get('reqInfo', '')
                         if latency > 200 or '→ 200' not in req_info:
-                            alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms'
+                            alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\n@Lunitarik shell i /restart server?'
                             if not failed:
                                 failed = True
                                 bot.send_message(CHAT_ID, alert)
@@ -42,7 +44,23 @@ async def listen_monitor():
             print(f"Error: {e}, reconnecting in 5s...")
             await asyncio.sleep(5)
 
+@bot.message_handler(commands=['restart'])
+def handle_restart(message):
+    if str(message.chat.id) != CHAT_ID:
+        bot.reply_to(message, "⛔️ Unauthorized")
+        return
+    bot.reply_to(message, "🔄 Restarting the server...")
+    subprocess.run(["docker-compose", "restart", "letovo-server"])
+    time.sleep(5)
+    logs = subprocess.run(["docker-compose", "logs", "--tail 10", "letovo-server"], capture_output=True, text=True)
+    bot.send_message(CHAT_ID, f"Server restarted. Last logs:\n```\n{logs.stdout}\n```", parse_mode='MarkdownV2')
+    
+
 if __name__ == '__main__':
-    print("Starting latency monitor...")
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(listen_monitor())
+    ws_task = loop.create_task(listen_monitor())
+    import threading
+    def run_bot():
+        bot.infinity_polling()
+    threading.Thread(target=run_bot, daemon=True).start()
+    loop.run_forever()
+
