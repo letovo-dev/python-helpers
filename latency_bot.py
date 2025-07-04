@@ -11,6 +11,7 @@ with open("/app/configs/latency_bot_config.json", 'r') as f:
     TELEGRAM_BOT_TOKEN = config['bot_token']
     CHAT_ID = config['chat_id']
     MONITOR_WS_URL = config['monitor_ws_url']
+    ALLOWED_LATENCY = config.get('allowed_latency', 500)  
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 loop = asyncio.get_event_loop()
