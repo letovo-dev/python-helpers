@@ -17,6 +17,7 @@ with open("/app/configs/latency_bot_config.json", 'r') as f:
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 loop = asyncio.get_event_loop()
 
+current_latency = 0
 
 async def listen_monitor():
     while True:
@@ -32,6 +33,8 @@ async def listen_monitor():
                     if points:
                         latest = points[-1]
                         latency = latest.get('avg5s', 0)
+                        global current_latency
+                        current_latency = latency
                         req_info = latest.get('reqInfo', '')
                         if latency > ALLOWED_LATENCY or '→ 200' not in req_info:
                             alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\n@Lunitarik shell i /restart server?'
@@ -47,7 +50,7 @@ async def listen_monitor():
             await asyncio.sleep(5)
 
 @bot.message_handler(commands=['restart'])
-def handle_restart(message):
+def handle_restart(message: telebot.types.Message):
     if str(message.chat.id) != CHAT_ID:
         bot.reply_to(message, "⛔️ Unauthorized")
         return
@@ -57,6 +60,14 @@ def handle_restart(message):
     logs = subprocess.run(["docker-compose", "logs", "--tail 10", "letovo-server"], capture_output=True, text=True)
     bot.send_message(CHAT_ID, f"Server restarted. Last logs:\n```\n{logs.stdout}\n```", parse_mode='MarkdownV2')
     
+@bot.message_handler(commands=['status'])
+def handle_status(message: telebot.types.Message):
+    if str(message.chat.id) not in [CHAT_ID, DEBUG_CHAT_ID]:
+        bot.reply_to(message, "⛔️ Unauthorized")
+        return
+    status = f"Current latency: {current_latency:.1f} ms\nAllowed latency: {ALLOWED_LATENCY} ms"
+    bot.send_message(message.chat.id, status)
+
 
 if __name__ == '__main__':
     ws_task = loop.create_task(listen_monitor())
