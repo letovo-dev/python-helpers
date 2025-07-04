@@ -32,7 +32,7 @@ async def listen_monitor():
                         latest = points[-1]
                         latency = latest.get('avg5s', 0)
                         req_info = latest.get('reqInfo', '')
-                        if latency > 200 or '→ 200' not in req_info:
+                        if latency > ALLOWED_LATENCY or '→ 200' not in req_info:
                             alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\n@Lunitarik shell i /restart server?'
                             if not failed:
                                 failed = True
