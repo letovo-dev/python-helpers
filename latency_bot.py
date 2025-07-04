@@ -38,13 +38,12 @@ async def listen_monitor():
                         current_latency = latency
                         req_info = latest.get('reqInfo', '')
                         if latency > ALLOWED_LATENCY or '→ 200' not in req_info:
-                            alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\n@Lunitarik shell i /restart server?'
+                            alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\ncheck statistic at http://sergei-scv.ru:8080/ '
                             if not failed and not scheduled_fail:
                                 failed = True
                                 bot.send_message(CHAT_ID, alert)
                         elif failed:
                             failed = False
-                            global scheduled_fail
                             scheduled_fail = False
                             alert = f'✅ OK\n{req_info}\nLatency: {latency:.1f} ms'
                             bot.send_message(CHAT_ID, alert)
@@ -73,7 +72,6 @@ def handle_status(message: telebot.types.Message):
 
 @bot.message_handler(commands=['fail'])
 def handle_fail(message: telebot.types.Message):
-    global scheduled_fail
     if str(message.chat.id) not in [CHAT_ID, DEBUG_CHAT_ID]:
         bot.reply_to(message, "⛔️ Unauthorized")
         return
