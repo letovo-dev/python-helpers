@@ -37,7 +37,7 @@ async def listen_monitor():
                         current_latency = latency
                         req_info = latest.get('reqInfo', '')
                         if latency > ALLOWED_LATENCY or '→ 200' not in req_info:
-                            alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\n@Lunitarik shell i /restart server?'
+                            alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\nmore statistic at http://sergei-scv.ru:8080/\n@Lunitarik'
                             if not failed:
                                 failed = True
                                 bot.send_message(CHAT_ID, alert)
