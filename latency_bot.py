@@ -10,6 +10,7 @@ with open("/app/configs/latency_bot_config.json", 'r') as f:
     TELEGRAM_BOT_TOKEN = config['bot_token']
     CHAT_ID = config['chat_id']
     MONITOR_WS_URL = config['monitor_ws_url']
+    ALLOWED_LATENCY = config.get('allowed_latency', 500)  
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
@@ -29,7 +30,7 @@ async def listen_monitor():
                         latest = points[-1]
                         latency = latest.get('avg5s', 0)
                         req_info = latest.get('reqInfo', '')
-                        if latency > 200 or '→ 200' not in req_info:
+                        if latency > ALLOWED_LATENCY or '→ 200' not in req_info:
                             alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms'
                             if not failed:
                                 failed = True
