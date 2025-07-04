@@ -10,6 +10,7 @@ with open("/app/configs/latency_bot_config.json", 'r') as f:
     config = json.load(f)
     TELEGRAM_BOT_TOKEN = config['bot_token']
     CHAT_ID = config['chat_id']
+    DEBUG_CHAT_ID = config.get('debug_chat_id', CHAT_ID)
     MONITOR_WS_URL = config['monitor_ws_url']
     ALLOWED_LATENCY = config.get('allowed_latency', 500)  
 
@@ -22,7 +23,7 @@ async def listen_monitor():
         try:
             async with websockets.connect(MONITOR_WS_URL) as websocket:
                 print("Connected to monitor websocket, allowed latency:", ALLOWED_LATENCY)
-                bot.send_message(CHAT_ID, "Connected to latency monitor websocket, allowed latency: " + str(ALLOWED_LATENCY))
+                bot.send_message(DEBUG_CHAT_ID, "Connected to latency monitor websocket, allowed latency: " + str(ALLOWED_LATENCY))
                 failed = False
                 while True:
                     message = await websocket.recv()
