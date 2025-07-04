@@ -22,7 +22,7 @@ async def listen_monitor():
         try:
             async with websockets.connect(MONITOR_WS_URL) as websocket:
                 print("Connected to monitor websocket, allowed latency:", ALLOWED_LATENCY)
-                bot.send_message(CHAT_ID, "Connected to latency monitor websocket.")
+                bot.send_message(CHAT_ID, "Connected to latency monitor websocket, allowed latency: " + str(ALLOWED_LATENCY))
                 failed = False
                 while True:
                     message = await websocket.recv()
