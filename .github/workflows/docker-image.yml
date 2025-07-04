@@ -20,6 +20,7 @@ jobs:
         with:
           name: latency-image-tar
           path: latency-bot.tar
+          retention-days: 5
 
   build-flask-uploader:
     runs-on: ubuntu-latest
@@ -34,3 +35,4 @@ jobs:
         with:
           name: uploader-image-tar
           path: flask-uploader.tar
+          retention-days: 5
