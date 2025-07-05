@@ -32,7 +32,7 @@ async def listen_monitor():
                     points = data.get('averages', [])
                     if points:
                         latest = points[-1]
-                        latency = latest.get('avg5s', 0)
+                        latency = latest.get('latency', 0)
                         global current_latency
                         current_latency = latency
                         req_info = latest.get('reqInfo', '')
