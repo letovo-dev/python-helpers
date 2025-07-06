@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Multi Latency Monitor - Single Chart</title>
+  <title>Letovo Latency Monitor</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
   </style>
 </head>
 <body>
-  <h2>Multi Latency Monitor (Single Chart)</h2>
+  <h2>Letovo Latency Monitor</h2>
   <canvas id="latencyChart" width="1000" height="500"></canvas>
   <script>
     const TARGET_NAMES = ['simple get', 'auth', 'get file'];

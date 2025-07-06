@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Endpoint Usage Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>Максимум запросов за 2-минутное окно: <span id="maxWindow">...</span></h2>
+  <h2>Топ-5 ручек</h2>
+  <canvas id="topChart"></canvas>
+  <h2>Распределение запросов</h2>
+  <canvas id="pieChart"></canvas>
+  <h2>История запросов</h2>
+  <canvas id="lineChart"></canvas>
+
+  <script>
+    async function fetchJSON(path) {
+      const res = await fetch(path);
+      return res.json();
+    }
+
+    async function render() {
+      const stats = await fetchJSON('/stats');
+      const history = await fetchJSON('/history');
+
+      // Update max window
+      document.getElementById('maxWindow').textContent = stats.maxWindow;
+
+      // Top-5 bar chart
+      const topLabels = stats.topEndpoints.map(e => e.name);
+      const topData = stats.topEndpoints.map(e => e.count);
+      new Chart(document.getElementById('topChart'), {
+        type: 'bar',
+        data: { labels: topLabels, datasets: [{ label: 'Count', data: topData }] },
+        options: { responsive: true }
+      });
+
+      // Distribution pie chart
+      const distLabels = stats.distribution.map(e => e.name);
+      const distData = stats.distribution.map(e => e.count);
+      new Chart(document.getElementById('pieChart'), {
+        type: 'pie',
+        data: { labels: distLabels, datasets: [{ data: distData }] },
+        options: { responsive: true }
+      });
+
+      // History line chart
+      const times = history.map(h => new Date(h.time).toLocaleTimeString());
+      const historicalTotals = history.map(h => h.total);
+      new Chart(document.getElementById('lineChart'), {
+        type: 'line',
+        data: { labels: times, datasets: [{ label: 'Total Requests', data: historicalTotals }] },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+    render();
+    setInterval(render, 120000);
+  </script>
+</body>
+</html>

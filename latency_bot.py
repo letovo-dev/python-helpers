@@ -17,7 +17,8 @@ with open("/app/configs/latency_bot_config.json", 'r') as f:
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 loop = asyncio.get_event_loop()
 
-current_latency = 0
+current_latency = {}
+current_status = {}
 
 async def listen_monitor():
     while True:
@@ -26,23 +27,36 @@ async def listen_monitor():
                 print("Connected to monitor websocket, allowed latency:", ALLOWED_LATENCY)
                 bot.send_message(DEBUG_CHAT_ID, "Connected to latency monitor websocket, allowed latency: " + str(ALLOWED_LATENCY))
                 failed = False
+                failed_request = None
                 while True:
                     message = await websocket.recv()
                     data = json.loads(message)
-                    points = data.get('averages', [])
+                    points = data.get('data', [])
                     if points:
                         latest = points[-1]
-                        latency = latest.get('latency', 0)
+                        latency = latest.get('latency', None)
+                        req_info = latest.get('reqInfo', '').replace('https://letovocorp.ru/', '').replace('\u2192', '').split()[1]
+                        status = latest.get('status', None)
+                        if latency is None:
+                            print("No latency data in the message:", latest)
+                            continue
                         global current_latency
-                        current_latency = latency
-                        req_info = latest.get('reqInfo', '')
-                        if latency > ALLOWED_LATENCY or '→ 200' not in req_info:
-                            alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\nmore statistic at http://sergei-scv.ru:8080/\n@Lunitarik'
-                            if not failed:
+                        current_latency[req_info] = latency
+                        global current_status
+                        current_status[req_info] = status
+                        if latency > ALLOWED_LATENCY or status is None or status >= 300 or status < 200:
+                            alert = f'🚨 ALERT 🚨\n{req_info}\nLatency: {latency:.1f} ms\nstatus: {status}\nplots at http://sergei-scv.ru:8080/\n@Lunitarik'
+                            if not failed and failed_request != req_info:
                                 failed = True
+                                failed_request = req_info
                                 bot.send_message(CHAT_ID, alert)
-                        elif failed:
+                        elif latency > ALLOWED_LATENCY / 2 and not failed:
+                            warning = f'⚠️ WARNING\n{req_info}\nLatency: {latency:.1f} ms'
+                            if not failed and failed_request != req_info:
+                                bot.send_message(CHAT_ID, warning)
+                        elif failed and failed_request == req_info:
                             failed = False
+                            failed_request = None
                             alert = f'✅ OK\n{req_info}\nLatency: {latency:.1f} ms'
                             bot.send_message(CHAT_ID, alert)
         except Exception as e:
@@ -62,11 +76,22 @@ def handle_restart(message: telebot.types.Message):
     
 @bot.message_handler(commands=['status'])
 def handle_status(message: telebot.types.Message):
-    if str(message.chat.id) not in [CHAT_ID, DEBUG_CHAT_ID]:
-        bot.reply_to(message, "⛔️ Unauthorized")
-        return
-    status = f"Current latency: {current_latency:.1f} ms\nAllowed latency: {ALLOWED_LATENCY} ms"
-    bot.send_message(message.chat.id, status)
+    lines = []
+    for url in current_latency.keys():
+        latency = current_latency.get(url, 'n/a')
+        status = current_status.get(url, 'n/a')
+        msg = f"URL: {url} \n - Latency: {latency:.1f} ms \n - Status: {status}\n"
+        if latency < ALLOWED_LATENCY and status is not None and status == 200:
+            msg = "✅ " + msg
+        elif latency >= ALLOWED_LATENCY / 2 or status < 300:
+            msg = "⚠️ " + msg
+        else:
+            msg = "❌ " + msg
+        lines.append(msg)
+
+    output = "ℹ️ status:\n\n" + "\n".join(lines) + "\n\n" + "plots at http://sergei-scv.ru:8080/"
+
+    bot.send_message(message.chat.id, output)
 
 
 if __name__ == '__main__':
