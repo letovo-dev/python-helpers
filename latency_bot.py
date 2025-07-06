@@ -6,13 +6,17 @@ import subprocess
 import time
 # docker build -f dockerfile.latency_bot -t latency_bot:latest .
 
-with open("/app/configs/latency_bot_config.json", 'r') as f:
-    config = json.load(f)
-    TELEGRAM_BOT_TOKEN = config['bot_token']
-    CHAT_ID = config['chat_id']
-    DEBUG_CHAT_ID = config.get('debug_chat_id', CHAT_ID)
-    MONITOR_WS_URL = config['monitor_ws_url']
-    ALLOWED_LATENCY = config.get('allowed_latency', 500)  
+TELEGRAM_BOT_TOKEN = CHAT_ID = DEBUG_CHAT_ID = MONITOR_WS_URL = ALLOWED_LATENCY = None
+
+def load_config():
+    global TELEGRAM_BOT_TOKEN, CHAT_ID, DEBUG_CHAT_ID, MONITOR_WS_URL, ALLOWED_LATENCY, SOCKET_ADRESS
+    with open("/app/configs/latency_bot_config.json", 'r') as f:
+        config = json.load(f)
+        TELEGRAM_BOT_TOKEN = config['bot_token']
+        CHAT_ID = config['chat_id']
+        DEBUG_CHAT_ID = config.get('debug_chat_id', CHAT_ID)
+        MONITOR_WS_URL = config['monitor_ws_url']
+        ALLOWED_LATENCY = config.get('allowed_latency', 500)
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 loop = asyncio.get_event_loop()
@@ -92,6 +96,14 @@ def handle_status(message: telebot.types.Message):
     output = "ℹ️ status:\n\n" + "\n".join(lines) + "\n\n" + "plots at http://sergei-scv.ru:8080/"
 
     bot.send_message(message.chat.id, output)
+
+@bot.message_handler(commands=['config'])
+def reread_config(message: telebot.types.Message):
+    if str(message.chat.id) != CHAT_ID:
+        bot.reply_to(message, "⛔️ Unauthorized")
+        return
+    load_config()
+    bot.send_message(CHAT_ID, "🔄 Config reloaded")
 
 
 if __name__ == '__main__':

@@ -81,7 +81,7 @@ app.get('/', (req, res) => {
       }
     });
 
-    const socket = new WebSocket('ws://' + location.host);
+    const socket = new WebSocket('wss://' + location.host + '/latency/letovo/');
     socket.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       const idx = msg.idx;
@@ -95,7 +95,7 @@ app.get('/', (req, res) => {
 
       if (points.length > 0) {
         const latestTime = new Date(points[points.length - 1].time).getTime();
-        const RANGE = 5 * 60 * 1000;
+        const RANGE = 45 * 60 * 1000;
         chart.options.scales.x.min = latestTime - RANGE;
         chart.options.scales.x.max = latestTime;
       }
