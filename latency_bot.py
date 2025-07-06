@@ -18,9 +18,9 @@ def load_config():
         MONITOR_WS_URL = config['monitor_ws_url']
         ALLOWED_LATENCY = config.get('allowed_latency', 500)
 
+load_config()
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 loop = asyncio.get_event_loop()
-load_config()
 
 current_latency = {}
 current_status = {}
