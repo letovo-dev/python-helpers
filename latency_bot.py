@@ -20,6 +20,7 @@ def load_config():
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 loop = asyncio.get_event_loop()
+load_config()
 
 current_latency = {}
 current_status = {}
