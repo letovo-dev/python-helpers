@@ -33,10 +33,32 @@ app.get('/', (req, res) => {
   <style>
     body { background-color: #1e1e1e; color: #ccc; }
     canvas { background-color: #2e2e2e; margin-bottom: 30px; }
+
+    /* Панель кнопок */
+    #panel {
+      margin-bottom: 20px;
+    }
+    .button {
+      display: inline-block;
+      margin-right: 10px;
+      padding: 10px 20px;
+      background-color: #333;
+      color: rgb(255, 255, 255);
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.2s;
+    }
+    .button:hover {
+      background-color: #555;
+    }
   </style>
 </head>
 <body>
   <h2>Letovo Latency Monitor</h2>
+  <div id="panel">
+    <a href="/statistics" class="button">Statistics</a>
+    <a href="http://10.8.0.1:8010/monitorix" class="button" target="_blank">Monitorix</a>
+  </div>
   <canvas id="latencyChart" width="1000" height="500"></canvas>
   <script>
     const TARGET_NAMES = ['simple get', 'auth', 'get file'];
@@ -122,9 +144,9 @@ function measureLatency() {
     const startTime = Date.now();
     let options = { method: METHODS[idx] }
     if (METHODS[idx] === 'POST') {
-      options.headers = { 'Content-Type': 'application/json' };
       options.body = JSON.stringify({ login: '', password: '' }); // пример тела запроса
     }
+    options.headers = {Cookie: 'AuthCookie=scv'}
     fetch(url, options)
       .then(res => res.text().then(body => ({ res, body })))
       .then(({ res }) => {

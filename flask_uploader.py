@@ -4,6 +4,8 @@ import requests
 from datetime import datetime
 import hashlib
 
+# docker build -f dockerfile.uploader -t flask-uploader:latest .
+
 app = flask.Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 * 10
 
@@ -29,7 +31,7 @@ def upload_file():
         return "No selected file", 400
     file.filename.replace(" ", "_")
     extention = file.filename.split('.')[-1].lower()
-    file.filename = hashlib.md5(file.filename.encode()).hexdigest() + "." + extention
+    file.filename = hashlib.md5(file.filename.encode() + str(datetime.now()).encode()).hexdigest() + "." + extention
     if extention in config["supported"]:
         file_path = os.path.join(ROOT_PATH, config["paths"][config["supported"][extention]])
     else: 
