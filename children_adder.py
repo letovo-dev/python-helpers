@@ -61,14 +61,14 @@ print("deps:", DEPS)
 
 def add_one(username, password, role, dep, rights):
     if username == '' or password == '':
-        print("Username or password cannot be empty.")
+        print(f"Username or password cannot be empty, user {username}.")
         return
     password_hash = get_pswd_hash(password)
     dep_id = DEPS.get(dep.lower(), None)
     role_id = ROLES.get(role.lower(), None)
     
     if dep_id is None or role_id is None:
-        print(f"Department '{dep}' role '{role}' not found.")
+        print(f"Department '{dep}' role '{role}' not found, user {username}.")
         return
     role_id = (role_id - 1) * 7 + dep_id
     if role == 'старший':
@@ -78,7 +78,7 @@ def add_one(username, password, role, dep, rights):
     if username in EXISTING_USERNAMES:
         cur.execute("""
             UPDATE "user" 
-            SET passwdhash = %s, role = %s, userrights = %s 
+            SET passwdhash = %s, role = %s, userrights = %s, active = true
             WHERE username = %s;
         """, (password_hash, role_id, rights, username))
     else:
@@ -99,11 +99,11 @@ def read_children_csv(file_path):
         for row in reader:
             if len(row) < 6:
                 continue
-            useless, useless2, username, password, dep, useless4, role = row[0], row[1], row[2], row[3], row[4].lower(), row[5].lower(), row[6]
-            if dep == 'сотрудник':
-                dep = ' '
-            if role == 'сотрудник':
-                role = 'старший'
+            useless, useless2, username, password, dep, useless3, role = row[0], row[1], row[2], row[3], row[4].lower(), row[5].lower(), row[6].lower()
+            # if dep == 'сотрудник':
+            #     dep = ' '
+            # if role == 'сотрудник':
+            #     role = 'старший'
             add_one(username, password, role, dep, 'child')
     con.commit()
 
